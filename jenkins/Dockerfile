@@ -21,3 +21,5 @@ USER jenkins
 
 # Pre-install Allure Jenkins Plugin
 RUN jenkins-plugin-cli --plugins allure-jenkins-plugin
+
+USER root
