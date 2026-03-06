@@ -86,14 +86,15 @@ pipeline {
         }
 
         // ── Stage 4: Publish Allure Report ──────────────────────────────────
-        stage('Publish Report') {
-    steps {
-        echo "📊 Publishing Allure report..."
-        allure([
-            results: [[path: 'allure-results']]
-        ])
-    }
-}
+        stage('Generate Allure Report') {
+            steps {
+                allure([
+                    commandline: 'allure',
+                    reportBuildPolicy: 'ALWAYS',
+                    results: [[path: 'allure-results']]
+                ])
+            }
+        }
     }
 
     // ── Post actions ────────────────────────────────────────────────────────
