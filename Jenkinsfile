@@ -87,13 +87,13 @@ pipeline {
 
         // ── Stage 4: Publish Allure Report ──────────────────────────────────
         stage('Publish Report') {
-            steps {
-                echo "📊 Publishing Allure report..."
-                allure includeProperties: false,
-                       jdk: '',
-                       results: [[path: 'allure-results']]
-            }
-        }
+    steps {
+        echo "📊 Publishing Allure report..."
+        allure([
+            results: [[path: 'allure-results']]
+        ])
+    }
+}
     }
 
     // ── Post actions ────────────────────────────────────────────────────────
