@@ -6,7 +6,7 @@
 #   test     — Playwright test runner (on-demand)
 #
 # Usage:
-#   docker compose up jenkins -d                           # Start Jenkins only
+#   docker-compose up jenkins -d                           # Start Jenkins only
 #   docker compose run test                                # Run tests (QA + Chrome default)
 #   ENV=stg BROWSER=firefox docker compose run test        # STG + Firefox
 #   docker compose run test --tags @smoke                  # QA + Chrome + @smoke tag

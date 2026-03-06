@@ -88,7 +88,7 @@ pipeline {
         // ── Stage 4: Publish Allure Report ──────────────────────────────────
         stage('Publish Report') {
             steps {
-allure includeProperties: false, installation: 'allure', jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]            }
+allure includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]            }
         }
     }
 
