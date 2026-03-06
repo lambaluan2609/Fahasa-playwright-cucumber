@@ -1,0 +1,44 @@
+
+# Environment
+.env
+env/*.env
+!.env.example
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Allure
+/allure-results/
+/allure-report/
+
+# Screenshots & Videos
+/screenshots/
+/videos/
+
+# TypeScript build output
+/dist/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Docker
+.docker/
+
+# CI artifacts
+*.zip
+
+# Large test data
+
+
+.github/
+.playwright-mcp/
+.vscode/
+
+

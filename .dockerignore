@@ -1,0 +1,14 @@
+node_modules/
+dist/
+allure-results/
+allure-report/
+playwright-report/
+test-results/
+screenshots/
+videos/
+.git/
+.github/
+.vscode/
+.playwright-mcp/
+*.zip
+*.docx

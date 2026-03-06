@@ -1,0 +1,51 @@
+# =============================================================================
+# Docker Compose — Fahasa Playwright Tests + Jenkins CI/CD
+#
+# Services:
+#   jenkins  — Jenkins CI server with Docker CLI + Allure plugin
+#   test     — Playwright test runner (on-demand)
+#
+# Usage:
+#   docker compose up jenkins -d                           # Start Jenkins only
+#   docker compose run test                                # Run tests (QA + Chrome default)
+#   ENV=stg BROWSER=firefox docker compose run test        # STG + Firefox
+#   docker compose run test --tags @smoke                  # QA + Chrome + @smoke tag
+#
+# Jenkins UI: http://localhost:8080  (admin/admin after initial setup)
+# =============================================================================
+
+services:
+  # ── Jenkins CI Server ──────────────────────────────────────────────
+  jenkins:
+    build: ./jenkins
+    container_name: fahasa-jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      # Persist Jenkins data across restarts
+      - jenkins_home:/var/jenkins_home
+      # Allow Jenkins to run Docker commands (Docker-in-Docker via socket)
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+    restart: unless-stopped
+
+  # ── Playwright Test Runner ─────────────────────────────────────────
+  test:
+    build: .
+    environment:
+      - ENV=${ENV:-qa}
+      - BROWSER=${BROWSER:-chrome}
+      - HEADLESS=true
+      - SLOW_MO=0
+    volumes:
+      # Mount report/artifact directories to access results from host
+      - ./allure-results:/app/allure-results
+      - ./screenshots:/app/screenshots
+      - ./videos:/app/videos
+      # Mount env files so credentials stay on host (not baked into image)
+      - ./env:/app/env:ro
+
+volumes:
+  jenkins_home:
