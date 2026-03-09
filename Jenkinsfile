@@ -70,10 +70,11 @@ pipeline {
                 ]) {
                     script {
                         def tagArg = params.TAGS ? "--tags ${params.TAGS}" : ''
+                        def containerName = "fahasa-tests-${env.BUILD_NUMBER}"
 
                         try {
                             sh """
-                                docker run --rm \
+                                docker run --name ${containerName} \
                                     -e ENV=${params.ENV} \
                                     -e BROWSER=${params.BROWSER} \
                                     -e HEADLESS=true \
@@ -81,9 +82,6 @@ pipeline {
                                     -e ALLURE_RESULTS_DIR=/app/allure-results \
                                     -e FAHASA_USERNAME=\$FAHASA_USERNAME \
                                     -e FAHASA_PASSWORD=\$FAHASA_PASSWORD \
-                                    -v \${WORKSPACE}/allure-results:/app/allure-results \
-                                    -v \${WORKSPACE}/screenshots:/app/screenshots \
-                                    -v \${WORKSPACE}/videos:/app/videos \
                                     ${TEST_IMAGE} ${tagArg}
                             """
                         } catch (err) {
