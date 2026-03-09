@@ -78,6 +78,7 @@ pipeline {
                                     -e BROWSER=${params.BROWSER} \
                                     -e HEADLESS=true \
                                     -e SLOW_MO=0 \
+                                    -e ALLURE_RESULTS_DIR=/app/allure-results \
                                     -e FAHASA_USERNAME=\$FAHASA_USERNAME \
                                     -e FAHASA_PASSWORD=\$FAHASA_PASSWORD \
                                     -v \${WORKSPACE}/allure-results:/app/allure-results \
@@ -88,6 +89,9 @@ pipeline {
                         } catch (err) {
                             currentBuild.result = 'FAILURE'
                         }
+
+                        // Debug: Check if allure results files were generated
+                        sh 'echo "📂 Allure results contents:" && ls -la allure-results/ && echo "Total files: $(find allure-results -type f | wc -l)"'
                     }
                 }
             }

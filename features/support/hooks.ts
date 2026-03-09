@@ -7,12 +7,19 @@
  *
  * @module hooks
  */
-import { Before, After, BeforeAll, AfterAll, Status, setDefaultTimeout } from '@cucumber/cucumber';
-import { chromium, firefox, webkit, BrowserType } from 'playwright';
-import { CustomWorld } from './world';
-import { EnvironmentConfig, BrowserName, loadConfig } from './config';
-import fs from 'fs';
-import path from 'path';
+import {
+  Before,
+  After,
+  BeforeAll,
+  AfterAll,
+  Status,
+  setDefaultTimeout,
+} from "@cucumber/cucumber";
+import { chromium, firefox, webkit, BrowserType } from "playwright";
+import { CustomWorld } from "./world";
+import { EnvironmentConfig, BrowserName, loadConfig } from "./config";
+import fs from "fs";
+import path from "path";
 
 /**
  * Set default step timeout to 120 seconds.
@@ -37,22 +44,27 @@ BeforeAll(async function (): Promise<void> {
   const config: EnvironmentConfig = loadConfig();
   const browserType: BrowserType = browserTypes[config.BROWSER];
 
-  console.log(`[Hook] Launching ${config.BROWSER} browser (env: ${config.ENV_NAME}, headless: ${config.HEADLESS})`);
+  console.log(
+    `[Hook] Launching ${config.BROWSER} browser (env: ${config.ENV_NAME}, headless: ${config.HEADLESS})`,
+  );
 
   CustomWorld.browser = await browserType.launch({
     headless: config.HEADLESS,
     slowMo: config.SLOW_MO,
-    args: config.BROWSER === 'chromium' ? [
-      // ── Anti-bot detection flags ──────────────────────────────
-      '--disable-blink-features=AutomationControlled',
-      '--disable-features=IsolateOrigins,site-per-process',
-      '--disable-dev-shm-usage',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-infobars',
-      '--window-size=1280,720',
-      '--disable-extensions',
-    ] : [],
+    args:
+      config.BROWSER === "chromium"
+        ? [
+            // ── Anti-bot detection flags ──────────────────────────────
+            "--disable-blink-features=AutomationControlled",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--disable-dev-shm-usage",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-infobars",
+            "--window-size=1280,720",
+            "--disable-extensions",
+          ]
+        : [],
   });
 });
 
@@ -73,21 +85,24 @@ AfterAll(async function (): Promise<void> {
  */
 Before(async function (this: CustomWorld): Promise<void> {
   if (!CustomWorld.browser) {
-    throw new Error('Browser not launched. Ensure BeforeAll hook ran successfully.');
+    throw new Error(
+      "Browser not launched. Ensure BeforeAll hook ran successfully.",
+    );
   }
 
   this.context = await CustomWorld.browser.newContext({
     baseURL: this.config.BASE_URL,
     viewport: { width: 1280, height: 720 },
     recordVideo: {
-      dir: 'videos/',
+      dir: "videos/",
       size: { width: 1280, height: 720 },
     },
     ignoreHTTPSErrors: true,
     // ── Anti-bot detection: mimic real Chrome browser ──────────
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    locale: 'vi-VN',
-    timezoneId: 'Asia/Ho_Chi_Minh',
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    locale: "vi-VN",
+    timezoneId: "Asia/Ho_Chi_Minh",
   });
 
   this.page = await this.context.newPage();
@@ -131,15 +146,21 @@ After(async function (this: CustomWorld, scenario): Promise<void> {
   if (scenario.result?.status === Status.FAILED && this.page) {
     try {
       // Ensure screenshots directory exists
-      const screenshotDir: string = path.resolve('screenshots');
+      const screenshotDir: string = path.resolve("screenshots");
       if (!fs.existsSync(screenshotDir)) {
         fs.mkdirSync(screenshotDir, { recursive: true });
       }
 
       // Generate a unique screenshot filename from scenario name
-      const scenarioName: string = scenario.pickle.name.replace(/[^a-zA-Z0-9]/g, '_');
-      const timestamp: string = new Date().toISOString().replace(/[:.]/g, '-');
-      const screenshotPath: string = path.join(screenshotDir, `${scenarioName}_${timestamp}.png`);
+      const scenarioName: string = scenario.pickle.name.replace(
+        /[^a-zA-Z0-9]/g,
+        "_",
+      );
+      const timestamp: string = new Date().toISOString().replace(/[:.]/g, "-");
+      const screenshotPath: string = path.join(
+        screenshotDir,
+        `${scenarioName}_${timestamp}.png`,
+      );
 
       // Take screenshot and save to file
       const screenshotBuffer: Buffer = await this.page.screenshot({
@@ -148,12 +169,12 @@ After(async function (this: CustomWorld, scenario): Promise<void> {
       });
 
       // Attach screenshot to Allure report
-      this.attach(screenshotBuffer, 'image/png');
+      this.attach(screenshotBuffer, "image/png");
       console.log(`[Hook] Screenshot saved: ${screenshotPath}`);
     } catch (error) {
       console.error(
         `[Hook] Failed to capture screenshot for scenario "${scenario.pickle.name}". ` +
-        `Error: ${(error as Error).message}`
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -192,13 +213,13 @@ After(async function (this: CustomWorld, scenario): Promise<void> {
 
       if (fs.existsSync(videoPath)) {
         const videoBuffer: Buffer = fs.readFileSync(videoPath);
-        this.attach(videoBuffer, 'video/webm');
+        this.attach(videoBuffer, "video/webm");
         console.log(`[Hook] Video attached: ${videoPath}`);
       }
     } catch (error) {
       console.error(
         `[Hook] Failed to attach video for scenario "${scenario.pickle.name}". ` +
-        `Error: ${(error as Error).message}`
+          `Error: ${(error as Error).message}`,
       );
     }
   }

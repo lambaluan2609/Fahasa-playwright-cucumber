@@ -23,4 +23,4 @@ Feature: Fahasa Shopping Cart
     And the user clicks the first product in the search results
     And the user adds the product to the cart
     And the user navigates to the cart page
-    Then the cart item price should be "999.999 đ"
+    Then the cart item price should be "25.500 đ"
