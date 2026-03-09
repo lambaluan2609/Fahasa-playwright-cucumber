@@ -17,7 +17,7 @@ module.exports = {
 
     requireModule: ["ts-node/register"],
 
-    format: ["allure-cucumberjs/reporter", "summary", "progress"],
+    format: ["allure-cucumberjs/reporter", "summary"],
 
     formatOptions: {
       resultsDir: process.env.ALLURE_RESULTS_DIR,

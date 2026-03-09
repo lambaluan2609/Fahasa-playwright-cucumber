@@ -25,6 +25,8 @@ RUN npm ci
 # Copy the rest of the project
 COPY . .
 
+RUN mkdir -p /app/allure-results && chmod -R 777 /app/allure-results
+
 # ── Default environment variables ────────────────────────────────────────────
 # These can be overridden at runtime with -e or --env-file
 ENV ENV=qa
