@@ -44,7 +44,7 @@ pipeline {
         // ── Stage 1: Checkout source code ───────────────────────────────────
         stage('Checkout') {
             steps {
-                echo "📥 Checking out source code..."
+                echo '📥 Checking out source code...'
                 checkout scm
             }
         }
@@ -62,40 +62,56 @@ pipeline {
             steps {
                 echo "🚀 Running tests — ENV: ${params.ENV} | Browser: ${params.BROWSER} | Tags: ${params.TAGS ?: 'all'}"
 
-                // Clean previous results
                 sh 'rm -rf allure-results && mkdir -p allure-results screenshots videos'
 
-                script {
-                    // Build the docker run command
-                    def tagArg = params.TAGS ? "--tags ${params.TAGS}" : ""
+                withCredentials([
+                    string(credentialsId: 'FAHASA_USERNAME', variable: 'FAHASA_USERNAME'),
+                    string(credentialsId: 'FAHASA_PASSWORD', variable: 'FAHASA_PASSWORD')
+                ]) {
+                    script {
+                        def tagArg = params.TAGS ? "--tags ${params.TAGS}" : ''
 
-                    sh """
-                        docker run --rm \
-                            -e ENV=${params.ENV} \
-                            -e BROWSER=${params.BROWSER} \
-                            -e HEADLESS=true \
-                            -e SLOW_MO=0 \
-                            -v \${WORKSPACE}/allure-results:/app/allure-results \
-                            -v \${WORKSPACE}/screenshots:/app/screenshots \
-                            -v \${WORKSPACE}/videos:/app/videos \
-                            -v \${WORKSPACE}/env:/app/env:ro \
-                            ${TEST_IMAGE} ${tagArg}
-                    """
+                        try {
+                            sh """
+                                docker run --rm \
+                                    -e ENV=${params.ENV} \
+                                    -e BROWSER=${params.BROWSER} \
+                                    -e HEADLESS=true \
+                                    -e SLOW_MO=0 \
+                                    -e FAHASA_USERNAME=\$FAHASA_USERNAME \
+                                    -e FAHASA_PASSWORD=\$FAHASA_PASSWORD \
+                                    -v \${WORKSPACE}/allure-results:/app/allure-results \
+                                    -v \${WORKSPACE}/screenshots:/app/screenshots \
+                                    -v \${WORKSPACE}/videos:/app/videos \
+                                    ${TEST_IMAGE} ${tagArg}
+                            """
+                        } catch (err) {
+                            currentBuild.result = 'FAILURE'
+                        }
+                    }
                 }
             }
         }
 
         // ── Stage 4: Publish Allure Report ──────────────────────────────────
         stage('Publish Report') {
+            when {
+                always()
+            }
             steps {
-allure includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]            }
+                allure(
+                    includeProperties: false,
+                    jdk: '',
+                    results: [[path: 'allure-results']]
+                )
+            }
         }
     }
 
     // ── Post actions ────────────────────────────────────────────────────────
     post {
         always {
-            echo "🧹 Cleaning up..."
+            echo '🧹 Cleaning up...'
 
             // Archive screenshots on failure
             archiveArtifacts artifacts: 'screenshots/**/*.png', allowEmptyArchive: true
@@ -110,7 +126,7 @@ allure includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'AL
         }
 
         failure {
-            echo "❌ Tests failed! Check Allure report for details."
+            echo '❌ Tests failed! Check Allure report for details.'
         }
     }
 }
