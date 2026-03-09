@@ -95,9 +95,6 @@ pipeline {
 
         // ── Stage 4: Publish Allure Report ──────────────────────────────────
         stage('Publish Report') {
-            when {
-                always()
-            }
             steps {
                 allure(
                     includeProperties: false,
