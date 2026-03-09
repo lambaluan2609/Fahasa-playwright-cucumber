@@ -86,9 +86,22 @@ pipeline {
                             """
                         } catch (err) {
                             currentBuild.result = 'FAILURE'
+                            echo '⚠️ Test có lỗi, đang tiến hành lấy report...'
+                        } finally {
+                            // Khối này đảm bảo luôn lấy file ra ngoài dù test pass hay fail
+                            echo '📦 Đang copy kết quả từ Docker ra Jenkins Workspace...'
+
+                            sh """
+                                docker cp ${containerName}:/app/allure-results/. ./allure-results/ || echo "Không có file allure"
+                                docker cp ${containerName}:/app/screenshots/. ./screenshots/ || echo "Không có file screenshot"
+                                docker cp ${containerName}:/app/videos/. ./videos/ || echo "Không có file video"
+
+                                echo "🧹 Đang xóa container test..."
+                                docker rm -f ${containerName} || true
+                            """
                         }
 
-                        // Debug: Check if allure results files were generated
+                        // Debug: Kiểm tra xem file đã ra ngoài an toàn chưa
                         sh 'echo "📂 Allure results contents:" && ls -la allure-results/ && echo "Total files: $(find allure-results -type f | wc -l)"'
                     }
                 }
