@@ -34,11 +34,4 @@ ENV SLOW_MO=0
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────
 # Allows passing extra args like --tags @smoke
-ENTRYPOINT [
-"npx",
-"cucumber-js",
-"--config",
-"cucumber.js",
-"--format",
-"allure-cucumberjs/reporter"
-]
+ENTRYPOINT ["npx","cucumber-js","--config","cucumber.js","--format","allure-cucumberjs/reporter"]
