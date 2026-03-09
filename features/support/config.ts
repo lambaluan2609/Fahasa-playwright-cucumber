@@ -85,7 +85,7 @@ export function loadConfig(): EnvironmentConfig {
   const envPath: string = path.resolve(process.cwd(), "env", `${envName}.env`);
 
   // Load environment variables from the resolved .env file
-  const result = dotenv.config({ path: envPath });
+  const result = dotenv.config({ path: envPath, quiet: true });
 
   if (result.error && !process.env.FAHASA_USERNAME) {
     console.warn(
