@@ -11,15 +11,16 @@
 1. [Yêu cầu môi trường](#1-yêu-cầu-môi-trường)
 2. [Cài đặt project](#2-cài-đặt-project)
 3. [Cấu trúc thư mục](#3-cấu-trúc-thư-mục)
-4. [Chạy test](#4-chạy-test)
-5. [Xem báo cáo kết quả (Allure)](#5-xem-báo-cáo-kết-quả-allure)
-6. [Kiến trúc code — Cucumber BDD + Page Object Model](#6-kiến-trúc-code--cucumber-bdd--page-object-model)
-7. [Mô tả chi tiết các Scenario](#7-mô-tả-chi-tiết-các-scenario)
-8. [Cấu hình dự án](#8-cấu-hình-dự-án)
-9. [Locator Strategy](#9-locator-strategy)
-10. [Error Handling & Assertion Pattern](#10-error-handling--assertion-pattern)
-11. [Ghi chú quan trọng về Fahasa](#11-ghi-chú-quan-trọng-về-fahasa)
-12. [Troubleshooting](#12-troubleshooting)
+4. [Quy trình chuẩn: Implementation đến Execution](#4-quy-trình-chuẩn-implementation-đến-execution)
+5. [Chạy test](#5-chạy-test)
+6. [Xem báo cáo kết quả (Allure)](#6-xem-báo-cáo-kết-quả-allure)
+7. [Kiến trúc code — Cucumber BDD + Page Object Model](#7-kiến-trúc-code--cucumber-bdd--page-object-model)
+8. [Mô tả chi tiết các Scenario](#8-mô-tả-chi-tiết-các-scenario)
+9. [Cấu hình dự án](#9-cấu-hình-dự-án)
+10. [Locator Strategy](#10-locator-strategy)
+11. [Error Handling & Assertion Pattern](#11-error-handling--assertion-pattern)
+12. [Ghi chú quan trọng về Fahasa](#12-ghi-chú-quan-trọng-về-fahasa)
+13. [Troubleshooting](#13-troubleshooting)
 
 ---
 
@@ -30,6 +31,7 @@
 | Node.js | v18 trở lên | `node -v` |
 | npm | v9 trở lên | `npm -v` |
 | Java (cho Allure) | JDK 8+ | `java -version` |
+| Docker & Docker Compose | Mới nhất (tùy chọn cho CI/CD) | `docker -v` |
 
 ---
 
@@ -111,12 +113,52 @@ Fahasa-playwright/
 ├── tsconfig.json                       # TypeScript config
 ├── package.json                        # Dependencies & npm scripts
 ├── .env.example                        # Template (no real credentials)
+├── Dockerfile                          # Build Docker image cho test suite
+├── docker-compose.yml                  # Cấu trúc khởi động Jenkins & Container test
+├── Jenkinsfile                         # Jenkins CI/CD Pipeline
 └── GUIDELINE.md                        # File này
 ```
 
 ---
 
-## 4. Chạy test
+
+## 4. Quy trình chuẩn: Implementation đến Execution
+
+Để đảm bảo hiệu quả khi bổ sung tính năng và chạy test, hãy tuân theo workflow sau:
+
+### Bước 1: Implementation (Triển khai code)
+1. **Viết kịch bản (Gherkin):** Tạo hoặc cập nhật file `.feature` trong thư mục `features/specs/` (Vd: `login.feature`). Thêm tags phù hợp (tùy chọn: `@smoke`, `@regression`).
+2. **Khai báo Locators và Actions (Page Object):** Khai báo các đối tượng UI và các thao tác tương ứng ở `features/pages/` (Kế thừa `BasePage`). Cần bắt buộc sử dụng cơ chế `try...catch` theo pattern hiện hành.
+3. **Map Step Definitions:** Liên kết các bước viết ở Gherkin với logic Code TypeScript trong thư mục `features/step-definitions/`.
+
+### Bước 2: Local Execution (Kiểm thử tại máy cá nhân)
+1. Đảm bảo file cấu hình `.env` hoặc `env/*.env` đã chính xác credentials.
+2. Chạy test với UI để trigger và debug dễ hơn: `npm run test:headed` hoặc gắn tag cụ thể `npm run test:<tag_name>` (vd: `npm run test:smoke`).
+3. Chạy `npm run report` để phân tích kết quả bằng Allure Report ngay tại máy phụ trợ.
+
+### Bước 3: Docker Execution (Kiểm thử độc lập qua Container)
+1. Chống lỗi môi trường, build image độc lập trước khi chạy trên jenkins: `docker build -t fahasa-tests .`
+2. Chạy containerised test với các tag tùy chỉnh (có thể overrides các args của headless runtime):
+   ```bash
+   docker run --rm -e ENV=qa -e BROWSER=chrome fahasa-tests --tags @smoke
+   ```
+
+### Bước 4: CI/CD Execution (Kiểm thử qua hệ thống Jenkins)
+1. Push toàn bộ mã nguồn lên nhánh chính của VCS (Git).
+2. Tại màn hình giao diện của Jenkins CI/CD, sử dụng tính năng **Build with Parameters** cho job:
+   - Thay đổi các thông số `ENV` (qa, stg, dev)
+   - Chọn nền tảng `BROWSER` (chrome, firefox, safari)
+   - Tuỳ chỉnh tham số `TAGS` (vd: `@cart`) để test riêng rẽ.
+3. Jenkins Pipeline sẽ tự động: 
+   - Kiểm tra mã nguồn.
+   - Build Image `fahasa-tests`.
+   - Chạy test headless hoàn toàn ngầm bên trong Docker.
+   - Chụp Screenshots & Videos cho những scenarios fail.
+   - Xóa bỏ Container, rồi tổng kết và xuất Publish Allure Report.
+
+---
+
+## 5. Chạy test
 
 ### Chạy toàn bộ test
 
@@ -171,7 +213,7 @@ npm run test:parallel    # 4 workers chạy đồng thời
 
 ---
 
-## 5. Xem báo cáo kết quả (Allure)
+## 6. Xem báo cáo kết quả (Allure)
 
 ### Tạo và mở report
 
@@ -192,7 +234,7 @@ npm run report:open       # Mở report trong browser
 
 ---
 
-## 6. Kiến trúc code — Cucumber BDD + Page Object Model
+## 7. Kiến trúc code — Cucumber BDD + Page Object Model
 
 ### Tổng quan
 
@@ -223,7 +265,7 @@ Mỗi Page Object `extends BasePage`:
 
 ---
 
-## 7. Mô tả chi tiết các Scenario
+## 8. Mô tả chi tiết các Scenario
 
 ### Feature: Login (`login.feature`)
 
@@ -250,7 +292,7 @@ Mỗi Page Object `extends BasePage`:
 
 ---
 
-## 8. Cấu hình dự án
+## 9. Cấu hình dự án
 
 ### `cucumber.js` — Cucumber config
 
@@ -278,7 +320,7 @@ Mỗi Page Object `extends BasePage`:
 
 ---
 
-## 9. Locator Strategy
+## 10. Locator Strategy
 
 ### Fixed Locators — `private readonly` trong class body
 
@@ -321,7 +363,7 @@ public locatorNavigationMenuItemByText(itemName: string): Locator {
 
 ---
 
-## 10. Error Handling & Assertion Pattern
+## 11. Error Handling & Assertion Pattern
 
 ### Try-catch trong mọi Page Object method
 
@@ -355,7 +397,7 @@ Pattern: `expect(actual, "[ErrorCategory] message with context").toBe(expected)`
 
 ---
 
-## 11. Ghi chú quan trọng về Fahasa
+## 12. Ghi chú quan trọng về Fahasa
 
 ### Cloudflare Bot Protection
 
@@ -387,7 +429,7 @@ Sau `addToCart()`, Fahasa hiển thị toast (không redirect). `addToCart()` ch
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 **`Cannot find module '@cucumber/cucumber'`**
 ```bash
