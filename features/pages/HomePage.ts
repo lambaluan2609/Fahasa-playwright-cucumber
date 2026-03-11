@@ -6,25 +6,26 @@
  *
  * @module HomePage
  */
-import { Locator, Page } from 'playwright';
-import { BasePage } from './BasePage';
+import { Locator, Page } from "playwright";
+import { BasePage } from "./BasePage";
 
 export class HomePage extends BasePage {
   // ── Fixed Locators (private) ─────────────────────────────────────
   /** @private CSS selector for the desktop search input field */
-  private readonly searchInput: string = 'input.input-search:visible';
+  private readonly searchInput: string = "input.input-search:visible";
 
   /** @private CSS selector for the account/login button in header */
-  private readonly accountButton: string = '.fhs_top_account_button';
+  private readonly accountButton: string = ".fhs_top_account_button";
 
   /** @private CSS selector for the shopping cart icon in header */
   private readonly cartButton: string = 'a[href*="checkout/cart"]';
 
   /** @private CSS selector for the Fahasa logo */
-  private readonly logo: string = 'a.logo, .logo a';
+  private readonly logo: string = "a.logo, .logo a";
 
   /** @private CSS selector for the notification popup overlay */
-  private readonly notificationPopup: string = '.fhs-popup-notification, [class*="notification-popup"]';
+  private readonly notificationPopup: string =
+    '.fhs-popup-notification, [class*="notification-popup"]';
 
   /**
    * Creates a new HomePage instance.
@@ -44,7 +45,7 @@ export class HomePage extends BasePage {
    */
   public locatorNavigationMenuItemByText(itemName: string): Locator {
     return this.page.locator(
-      `//li[contains(@class,'menu-item')]/a[normalize-space(text())='${itemName}']`
+      `//li[contains(@class,'menu-item')]/a[normalize-space(text())='${itemName}']`,
     );
   }
 
@@ -56,7 +57,7 @@ export class HomePage extends BasePage {
    */
   public locatorCategoryByText(categoryName: string): Locator {
     return this.page.locator(
-      `//a[contains(@class,'cate-link') and normalize-space(text())='${categoryName}']`
+      `//a[contains(@class,'cate-link') and normalize-space(text())='${categoryName}']`,
     );
   }
 
@@ -70,13 +71,13 @@ export class HomePage extends BasePage {
    */
   public async open(): Promise<void> {
     try {
-      await this.goto('/');
+      await this.goto("/");
       await this.waitForCloudflare();
       await this.dismissNotificationPopup();
     } catch (error) {
       throw new Error(
         `[HomePage] Failed to open homepage. ` +
-        `Error: ${(error as Error).message}`
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -91,7 +92,7 @@ export class HomePage extends BasePage {
     try {
       const popup: Locator = this.page.locator(this.notificationPopup);
       if (await popup.isVisible().catch(() => false)) {
-        await this.page.keyboard.press('Escape');
+        await this.page.keyboard.press("Escape");
         await this.wait(500);
       }
     } catch {
@@ -109,17 +110,17 @@ export class HomePage extends BasePage {
    */
   public async searchFor(keyword: string): Promise<void> {
     try {
-      await this.click(this.searchInput);
-      const searchLocator: Locator = this.page.locator(this.searchInput);
-      await searchLocator.clear();
-      await this.fill(this.searchInput, keyword);
-      await this.page.keyboard.press('Enter');
-      await this.page.waitForLoadState('domcontentloaded');
+      const searchLocator = this.page.locator(this.searchInput).first();
+      await searchLocator.waitFor({ state: "visible", timeout: 5000 });
+      await searchLocator.click({ force: true });
+      await searchLocator.fill(keyword);
+      await this.page.keyboard.press("Enter");
+      await this.page.waitForLoadState("load");
     } catch (error) {
       throw new Error(
         `[HomePage] Failed to search for keyword "${keyword}". ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -133,13 +134,13 @@ export class HomePage extends BasePage {
   public async clickAccountButton(): Promise<void> {
     try {
       const locator: Locator = this.page.locator(this.accountButton).first();
-      await locator.waitFor({ state: 'visible', timeout: 10_000 });
+      await locator.waitFor({ state: "visible", timeout: 10_000 });
       await locator.click();
     } catch (error) {
       throw new Error(
         `[HomePage] Failed to click account button. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
