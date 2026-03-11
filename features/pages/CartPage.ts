@@ -12,8 +12,8 @@
  *
  * @module CartPage
  */
-import { Locator, Page } from 'playwright';
-import { BasePage } from './BasePage';
+import { Locator, Page } from "playwright";
+import { BasePage } from "./BasePage";
 
 export class CartPage extends BasePage {
   // ── Fixed Locators (private) ─────────────────────────────────────
@@ -21,16 +21,18 @@ export class CartPage extends BasePage {
   private readonly selectAllCheckbox: string = 'input[type="checkbox"]';
 
   /** @private CSS selector for the first item's quantity input (indicates cart has items) */
-  private readonly firstItemQtyInput: string = 'input.qty-carts, input[id^="qty-"]';
+  private readonly firstItemQtyInput: string =
+    'input.qty-carts, input[id^="qty-"]';
 
   /** @private CSS selector for the "THANH TOÁN" (Checkout) button */
-  private readonly checkoutButton: string = 'button.btn-checkout';
+  private readonly checkoutButton: string = "button.btn-checkout";
 
   /** @private Combined selector for the cart page title heading */
-  private readonly cartTitle: string = 'h1, .fhs-cart-title, .cart-title';
+  private readonly cartTitle: string = "h1, .fhs-cart-title, .cart-title";
 
   /** @private Combined selector for the total price display */
-  private readonly totalPrice: string = '.fhs-total-price, .grand-total .price, [class*="total-price"] strong';
+  private readonly totalPrice: string =
+    '.fhs-total-price, .grand-total .price, [class*="total-price"] strong';
 
   /**
    * Creates a new CartPage instance.
@@ -50,7 +52,7 @@ export class CartPage extends BasePage {
    */
   public locatorCartItemByName(productName: string): Locator {
     return this.page.locator(
-      `//div[contains(@class,'cart-item') or contains(@class,'item-cart')]//a[contains(normalize-space(text()),'${productName}')]`
+      `//div[contains(@class,'cart-item') or contains(@class,'item-cart')]//a[contains(normalize-space(text()),'${productName}')]`,
     );
   }
 
@@ -64,6 +66,16 @@ export class CartPage extends BasePage {
     return this.page.locator(this.firstItemQtyInput).nth(index);
   }
 
+  // ── Helper Function ──────────────────────────────────────────────
+
+  /**
+   * Chuyển đổi chuỗi giá tiền (VD: "25.500 đ") thành số nguyên (25500)
+   */
+  private parsePriceToNumber(priceStr: string): number {
+    // Xóa tất cả các ký tự không phải là số (bao gồm dấu chấm, khoảng trắng, chữ "đ")
+    return parseInt(priceStr.replace(/[^\d]/g, ""), 10) || 0;
+  }
+
   // ── Page Actions ─────────────────────────────────────────────────
 
   /**
@@ -75,12 +87,12 @@ export class CartPage extends BasePage {
    */
   public async open(): Promise<void> {
     try {
-      await this.goto('/checkout/cart/');
-      await this.page.waitForLoadState('domcontentloaded');
+      await this.goto("/checkout/cart/");
+      await this.page.waitForLoadState("domcontentloaded");
 
       try {
-        await this.page.waitForSelector('.loading-mask, .fhs-loading', {
-          state: 'hidden',
+        await this.page.waitForSelector(".loading-mask, .fhs-loading", {
+          state: "hidden",
           timeout: 8_000,
         });
       } catch {
@@ -91,8 +103,8 @@ export class CartPage extends BasePage {
     } catch (error) {
       throw new Error(
         `[CartPage] Failed to open cart page. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -105,12 +117,16 @@ export class CartPage extends BasePage {
    */
   public async hasItems(): Promise<boolean> {
     try {
-      const qtyLocator: Locator = this.page.locator(this.firstItemQtyInput).first();
-      await qtyLocator.waitFor({ state: 'visible', timeout: 8_000 });
+      const qtyLocator: Locator = this.page
+        .locator(this.firstItemQtyInput)
+        .first();
+      await qtyLocator.waitFor({ state: "visible", timeout: 8_000 });
       return true;
     } catch {
       try {
-        const checkboxCount: number = await this.page.locator('input.checkbox-add-cart').count();
+        const checkboxCount: number = await this.page
+          .locator("input.checkbox-add-cart")
+          .count();
         return checkboxCount > 0;
       } catch {
         return false;
@@ -126,8 +142,8 @@ export class CartPage extends BasePage {
    */
   public async getFirstItemName(): Promise<string> {
     const selectors: string[] = [
-      '.product-item-name-cart',
-      '.cart-item-name',
+      ".product-item-name-cart",
+      ".cart-item-name",
       '.item-cart a[href*=".html"]',
       '.cart-item a[href*=".html"]',
       'a[href*=".html?fhs_campaign"]',
@@ -136,14 +152,17 @@ export class CartPage extends BasePage {
     for (const sel of selectors) {
       try {
         const text: string = (
-          (await this.page.locator(sel).first().textContent({ timeout: 3_000 })) ?? ''
+          (await this.page
+            .locator(sel)
+            .first()
+            .textContent({ timeout: 3_000 })) ?? ""
         ).trim();
         if (text.length > 3) return text;
       } catch {
         // Try next selector
       }
     }
-    return '';
+    return "";
   }
 
   /**
@@ -153,23 +172,26 @@ export class CartPage extends BasePage {
    */
   public async getFirstItemPrice(): Promise<string> {
     const selectors: string[] = [
-      '.price-finall',
-      '.price-final',
-      '.cart-price .price',
-      '.cartitem-total',
+      ".price-finall",
+      ".price-final",
+      ".cart-price .price",
+      ".cartitem-total",
     ];
 
     for (const sel of selectors) {
       try {
         const text: string = (
-          (await this.page.locator(sel).first().textContent({ timeout: 3_000 })) ?? ''
+          (await this.page
+            .locator(sel)
+            .first()
+            .textContent({ timeout: 3_000 })) ?? ""
         ).trim();
         if (text.match(/\d/)) return text;
       } catch {
         // Try next selector
       }
     }
-    return '';
+    return "";
   }
 
   /**
@@ -181,7 +203,10 @@ export class CartPage extends BasePage {
   public async getCartItemCount(): Promise<number> {
     try {
       const title: string =
-        (await this.page.locator(this.cartTitle).first().textContent({ timeout: 5_000 })) ?? '';
+        (await this.page
+          .locator(this.cartTitle)
+          .first()
+          .textContent({ timeout: 5_000 })) ?? "";
       const match: RegExpMatchArray | null = title.match(/\d+/);
       return match ? parseInt(match[0], 10) : 0;
     } catch {
@@ -198,8 +223,10 @@ export class CartPage extends BasePage {
    */
   public async selectAllItems(): Promise<void> {
     try {
-      const checkbox: Locator = this.page.locator(this.selectAllCheckbox).first();
-      await checkbox.waitFor({ state: 'visible', timeout: 10_000 });
+      const checkbox: Locator = this.page
+        .locator(this.selectAllCheckbox)
+        .first();
+      await checkbox.waitFor({ state: "visible", timeout: 10_000 });
       if (!(await checkbox.isChecked())) {
         await checkbox.click();
         await this.page.waitForTimeout(500);
@@ -207,8 +234,8 @@ export class CartPage extends BasePage {
     } catch (error) {
       throw new Error(
         `[CartPage] Failed to select all items in the cart. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -222,13 +249,13 @@ export class CartPage extends BasePage {
   public async isCheckoutButtonEnabled(): Promise<boolean> {
     try {
       const btn: Locator = this.page.locator(this.checkoutButton).first();
-      await btn.waitFor({ state: 'visible', timeout: 10_000 });
+      await btn.waitFor({ state: "visible", timeout: 10_000 });
       return await btn.isEnabled();
     } catch (error) {
       throw new Error(
         `[CartPage] Failed to check checkout button state. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -243,41 +270,79 @@ export class CartPage extends BasePage {
   public async clickCheckout(): Promise<void> {
     try {
       const btn: Locator = this.page.locator(this.checkoutButton).first();
-      await btn.waitFor({ state: 'visible', timeout: 10_000 });
+      await btn.waitFor({ state: "visible", timeout: 10_000 });
       await btn.click();
-      await this.page.waitForLoadState('domcontentloaded');
+      await this.page.waitForLoadState("domcontentloaded");
     } catch (error) {
       throw new Error(
         `[CartPage] Failed to click checkout button. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
   /**
-     * 
-     */
-    public async selectItemByName(productName: string): Promise<void> {
-  try {
+   *
+   */
+  public async selectItemByName(productName: string): Promise<void> {
+    try {
+      const row = this.page.locator(".item-product-cart", {
+        has: this.page.locator(`a:has-text("${productName}")`),
+      });
 
-    const row = this.page.locator('.item-product-cart', {
-      has: this.page.locator(`a:has-text("${productName}")`)
-    });
+      const checkbox = row.locator("input.checkbox-add-cart");
 
-    const checkbox = row.locator('input.checkbox-add-cart');
+      await checkbox.waitFor({ state: "visible" });
 
-    await checkbox.waitFor({ state: 'visible' });
+      if (!(await checkbox.isChecked())) {
+        await checkbox.click();
+      }
+    } catch (error) {
+      throw new Error(
+        `[CartPage] Failed to select item by name ${productName}. ` +
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
+      );
+    }
+  }
 
-    if (!(await checkbox.isChecked())) {
-      await checkbox.click();
+  /**
+   * Lấy chi tiết toàn bộ sản phẩm trong giỏ hàng để verify tính toán
+   * Trả về mảng các object chứa: Tên, Đơn giá, Số lượng, Thành tiền
+   */
+  public async getAllItemsDetails() {
+    // Xác định tất cả các dòng sản phẩm trong giỏ hàng
+    const itemRows = this.page.locator(".item-product-cart");
+    const rowCount = await itemRows.count();
+    const itemsDetails = [];
+
+    for (let i = 0; i < rowCount; i++) {
+      const row = itemRows.nth(i);
+
+      // 1. Lấy tên sản phẩm
+      const productName = await row
+        .locator(".product-name-full-text a")
+        .innerText();
+
+      // 2. Lấy Đơn giá (Chỉ lấy thẻ div chứa giá hiện tại, bỏ qua div chứa giá cũ bị gạch chéo)
+      const unitPriceStr = await row
+        .locator(".cart-fhsItem-price > div:first-child .price")
+        .innerText();
+      const unitPrice = this.parsePriceToNumber(unitPriceStr);
+
+      // 3. Lấy Số lượng (Lấy value từ thẻ input)
+      const qtyStr = await row.locator("input.qty-carts").inputValue();
+      const quantity = parseInt(qtyStr, 10) || 0;
+
+      // 4. Lấy Thành tiền của sản phẩm đó
+      const totalPriceStr = await row
+        .locator(".cart-price-total .price")
+        .innerText();
+      const totalPrice = this.parsePriceToNumber(totalPriceStr);
+
+      itemsDetails.push({ productName, unitPrice, quantity, totalPrice });
     }
 
-  } catch (error) {
-    throw new Error(
-      `[CartPage] Failed to select item by name ${productName}. ` +
-      `Current URL: ${this.page.url()}. ` +
-      `Error: ${(error as Error).message}`
-    );
+    return itemsDetails;
   }
-}
 }

@@ -123,3 +123,32 @@ Then(
     await cartPage.selectItemByName(this.productName!);
   },
 );
+
+Then(
+  "the total price of each item should equal its unit price multiplied by quantity",
+  async function (this: CustomWorld): Promise<void> {
+    if (!this.page) throw new Error("Page not initialized");
+
+    const cartPage = new CartPage(this.page);
+
+    // Lấy mảng toàn bộ sản phẩm đang có trong giỏ hàng
+    const cartItems = await cartPage.getAllItemsDetails();
+
+    // Đảm bảo trong giỏ hàng phải có ít nhất 1 sản phẩm để test
+    expect(
+      cartItems.length,
+      "Cart is empty, nothing to verify",
+    ).toBeGreaterThan(0);
+
+    // Vòng lặp kiểm tra từng sản phẩm một
+    for (const item of cartItems) {
+      const expectedTotal = item.unitPrice * item.quantity;
+
+      // So sánh giá thực tế vs giá mong đợi
+      expect(
+        item.totalPrice,
+        `[Pricing Error] Product: "${item.productName}" | Calculation failed: Unit Price (${item.unitPrice}đ) x Quantity (${item.quantity}) != Total (${item.totalPrice}đ)`,
+      ).toBe(expectedTotal);
+    }
+  },
+);
