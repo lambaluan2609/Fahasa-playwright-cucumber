@@ -121,22 +121,41 @@ pipeline {
     }
 
     // ── Post actions ────────────────────────────────────────────────────────
+    // ── Post actions ────────────────────────────────────────────────────────
     post {
         always {
-            echo '🧹 Đang dọn dẹp...'
+            echo '🧹 Đang dọn dẹp và lấy số liệu thống kê...'
 
             // 1. Lưu lại screenshot và video
             archiveArtifacts artifacts: 'screenshots/**/*.png', allowEmptyArchive: true
             archiveArtifacts artifacts: 'videos/**/*.webm', allowEmptyArchive: true
 
-            // 2. Xóa Docker image để dọn rác
+            // 2. Xóa Docker image
             sh "docker rmi ${TEST_IMAGE} || true"
+
+            // 3. ĐỌC FILE ALLURE SUMMARY ĐỂ LẤY SỐ LIỆU TEST (PASS/FAIL)
+            script {
+                try {
+                    // Đọc file json báo cáo của Allure
+                    def summaryText = readFile('allure-report/widgets/summary.json')
+                    // Dùng JsonSlurperClassic có sẵn của Groovy để parse JSON
+                    def summary = new groovy.json.JsonSlurperClassic().parseText(summaryText)
+
+                    // Gán vào biến môi trường để dùng ở khối success/failure bên dưới
+                    env.TOTAL_TESTS = summary.statistic.total ?: 0
+                    env.PASSED_TESTS = summary.statistic.passed ?: 0
+                    env.FAILED_TESTS = (summary.statistic.failed ?: 0) + (summary.statistic.broken ?: 0)
+                    env.SKIPPED_TESTS = summary.statistic.skipped ?: 0
+                } catch (Exception e) {
+                    echo "⚠️ Không thể đọc số liệu từ Allure: ${e.message}"
+                    env.TOTAL_TESTS = 'N/A'; env.PASSED_TESTS = 'N/A'; env.FAILED_TESTS = 'N/A'; env.SKIPPED_TESTS = 'N/A'
+                }
+            }
         }
 
         success {
             echo '✅ Tests passed! Đang gửi Email & MS Teams...'
 
-            // --- 1. GỬI EMAIL (Đã gỡ file Zip) ---
             emailext(
                 subject: "[Job #${env.BUILD_NUMBER}] ✅ THÀNH CÔNG: Kết quả Test E2E Fahasa",
                 mimeType: 'text/html',
@@ -148,18 +167,16 @@ pipeline {
                     <h3 style="color: #2e6c80;">📊 TỔNG QUAN KẾT QUẢ</h3>
                     <hr style="border: 1px solid #eee;">
                     <ul>
-                        <li><b>Trạng thái:</b> <span style="color: green;">PASSED ✅</span></li>
-                        <li><b>Job Name:</b> ${env.JOB_NAME}</li>
-                        <li><b>Build Number:</b> #${env.BUILD_NUMBER}</li>
-                        <li><b>Môi trường:</b> ${params.ENV}</li>
-                        <li><b>Trình duyệt:</b> ${params.BROWSER}</li>
-                        <li><b>Tags filter:</b> ${params.TAGS ?: 'Tất cả'}</li>
+                        <li><b>Môi trường:</b> ${params.ENV} | <b>Trình duyệt:</b> ${params.BROWSER}</li>
+                        <li><b>Tổng số Test Cases:</b> ${env.TOTAL_TESTS}</li>
+                        <li><b>PASSED:</b> <span style="color: green;">${env.PASSED_TESTS} ✅</span></li>
+                        <li><b>FAILED:</b> <span style="color: red;">${env.FAILED_TESTS} ❌</span></li>
+                        <li><b>SKIPPED:</b> <span style="color: orange;">${env.SKIPPED_TESTS} ⚠️</span></li>
                     </ul>
 
                     <h3 style="color: #2e6c80;">🔗 LINK XEM BÁO CÁO ALLURE</h3>
                     <hr style="border: 1px solid #eee;">
-                    <p>Vui lòng xem Allure Report trực tiếp trên Jenkins tại:<br>
-                    👉 <a href="${env.BUILD_URL}allure" style="color: #1a73e8;"><b>Mở Allure Report</b></a></p>
+                    <p>👉 <a href="${env.BUILD_URL}allure" style="color: #1a73e8;"><b>Mở Allure Report Chi Tiết</b></a></p>
 
                     <p><i>Trân trọng,<br><b>Jenkins Automation System</b></i></p>
                 </div>
@@ -167,7 +184,6 @@ pipeline {
                 to: 'lambaluan2609@gmail.com'
             )
 
-            // --- 2. GỬI MS TEAMS (Đã fix lỗi JSON schema) ---
             withCredentials([string(credentialsId: 'TEAMS_WEBHOOK_URL', variable: 'WEBHOOK')]) {
                 sh """
                     curl -H "Content-Type: application/json" -d '{
@@ -180,34 +196,19 @@ pipeline {
                                     "type": "AdaptiveCard",
                                     "version": "1.2",
                                     "body": [
-                                        {
-                                            "type": "TextBlock",
-                                            "text": "✅ Automation Test Results",
-                                            "weight": "Bolder",
-                                            "size": "Medium",
-                                            "color": "Good"
-                                        },
+                                        { "type": "TextBlock", "text": "✅ Automation Test Results", "weight": "Bolder", "size": "Medium", "color": "Good" },
                                         {
                                             "type": "FactSet",
                                             "facts": [
-                                                { "title": "Job Number:", "value": "#${env.BUILD_NUMBER}" },
-                                                { "title": "Environment:", "value": "${params.ENV}" },
-                                                { "title": "Browser:", "value": "${params.BROWSER}" },
-                                                { "title": "Status:", "value": "PASSED" }
+                                                { "title": "Environment:", "value": "${params.ENV} (${params.BROWSER})" },
+                                                { "title": "Total Tests:", "value": "${env.TOTAL_TESTS}" },
+                                                { "title": "Passed:", "value": "✅ ${env.PASSED_TESTS}" },
+                                                { "title": "Failed:", "value": "❌ ${env.FAILED_TESTS}" }
                                             ]
-                                        },
-                                        {
-                                            "type": "TextBlock",
-                                            "text": "👉 Click the button below to view full details and evidence.",
-                                            "wrap": true
                                         }
                                     ],
                                     "actions": [
-                                        {
-                                            "type": "Action.OpenUrl",
-                                            "title": "🌐 View Allure Report",
-                                            "url": "${env.BUILD_URL}allure"
-                                        }
+                                        { "type": "Action.OpenUrl", "title": "🌐 View Allure Report", "url": "${env.BUILD_URL}allure" }
                                     ]
                                 }
                             }
@@ -220,7 +221,6 @@ pipeline {
         failure {
             echo '❌ Tests failed! Đang gửi Email & MS Teams...'
 
-            // --- 1. GỬI EMAIL CẢNH BÁO (Đã gỡ file Zip) ---
             emailext(
                 subject: "[Job #${env.BUILD_NUMBER}] ❌ THẤT BẠI: Kết quả Test E2E Fahasa",
                 mimeType: 'text/html',
@@ -232,17 +232,16 @@ pipeline {
                     <h3 style="color: #d93025;">📊 TỔNG QUAN KẾT QUẢ</h3>
                     <hr style="border: 1px solid #eee;">
                     <ul>
-                        <li><b>Trạng thái:</b> <span style="color: red;">FAILED ❌</span> (Có Test Case bị lỗi)</li>
-                        <li><b>Job Name:</b> ${env.JOB_NAME}</li>
-                        <li><b>Build Number:</b> #${env.BUILD_NUMBER}</li>
-                        <li><b>Môi trường:</b> ${params.ENV}</li>
-                        <li><b>Trình duyệt:</b> ${params.BROWSER}</li>
+                        <li><b>Môi trường:</b> ${params.ENV} | <b>Trình duyệt:</b> ${params.BROWSER}</li>
+                        <li><b>Tổng số Test Cases:</b> ${env.TOTAL_TESTS}</li>
+                        <li><b>PASSED:</b> <span style="color: green;">${env.PASSED_TESTS} ✅</span></li>
+                        <li><b>FAILED:</b> <span style="color: red;"><b>${env.FAILED_TESTS} ❌</b></span> (Có lỗi, cần kiểm tra gấp)</li>
+                        <li><b>SKIPPED:</b> <span style="color: orange;">${env.SKIPPED_TESTS} ⚠️</span></li>
                     </ul>
 
                     <h3 style="color: #d93025;">🔗 LINK XEM CHI TIẾT LỖI VÀ VIDEO</h3>
                     <hr style="border: 1px solid #eee;">
-                    <p>Vui lòng check Allure Report (có chứa hình ảnh/video lúc lỗi) tại:<br>
-                    👉 <a href="${env.BUILD_URL}allure" style="color: #1a73e8;"><b>Mở Allure Report</b></a></p>
+                    <p>👉 <a href="${env.BUILD_URL}allure" style="color: #1a73e8;"><b>Mở Allure Report</b></a></p>
 
                     <p><i>Trân trọng,<br><b>Jenkins Automation System</b></i></p>
                 </div>
@@ -250,7 +249,6 @@ pipeline {
                 to: 'lambaluan2609@gmail.com'
             )
 
-            // --- 2. GỬI MS TEAMS CẢNH BÁO (Đã fix lỗi JSON schema) ---
             withCredentials([string(credentialsId: 'TEAMS_WEBHOOK_URL', variable: 'WEBHOOK')]) {
                 sh """
                     curl -H "Content-Type: application/json" -d '{
@@ -263,34 +261,20 @@ pipeline {
                                     "type": "AdaptiveCard",
                                     "version": "1.2",
                                     "body": [
-                                        {
-                                            "type": "TextBlock",
-                                            "text": "❌ Automation Test Results",
-                                            "weight": "Bolder",
-                                            "size": "Medium",
-                                            "color": "Attention"
-                                        },
+                                        { "type": "TextBlock", "text": "❌ Automation Test Results", "weight": "Bolder", "size": "Medium", "color": "Attention" },
                                         {
                                             "type": "FactSet",
                                             "facts": [
-                                                { "title": "Job Number:", "value": "#${env.BUILD_NUMBER}" },
-                                                { "title": "Environment:", "value": "${params.ENV}" },
-                                                { "title": "Browser:", "value": "${params.BROWSER}" },
-                                                { "title": "Status:", "value": "FAILED" }
+                                                { "title": "Environment:", "value": "${params.ENV} (${params.BROWSER})" },
+                                                { "title": "Total Tests:", "value": "${env.TOTAL_TESTS}" },
+                                                { "title": "Passed:", "value": "✅ ${env.PASSED_TESTS}" },
+                                                { "title": "Failed:", "value": "❌ ${env.FAILED_TESTS}" }
                                             ]
                                         },
-                                        {
-                                            "type": "TextBlock",
-                                            "text": "⚠️ Cảnh báo: Có test case bị lỗi. Bấm vào nút bên dưới để xem chi tiết log, screenshot và video lỗi.",
-                                            "wrap": true
-                                        }
+                                        { "type": "TextBlock", "text": "⚠️ Cảnh báo: Có ${env.FAILED_TESTS} test case bị lỗi. Bấm vào nút bên dưới để xem video lỗi.", "wrap": true, "color": "Attention" }
                                     ],
                                     "actions": [
-                                        {
-                                            "type": "Action.OpenUrl",
-                                            "title": "🌐 View Allure Report",
-                                            "url": "${env.BUILD_URL}allure"
-                                        }
+                                        { "type": "Action.OpenUrl", "title": "🌐 View Allure Report", "url": "${env.BUILD_URL}allure" }
                                     ]
                                 }
                             }
