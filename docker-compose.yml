@@ -46,6 +46,10 @@ services:
       - ./videos:/app/videos
       # Mount env files so credentials stay on host (not baked into image)
       - ./env:/app/env:ro
+      # Mount code directories so changes don't require image rebuild
+      - ./features:/app/features
+      - ./playwright.config.ts:/app/playwright.config.ts
+      - ./cucumber.js:/app/cucumber.js
 
 volumes:
   jenkins_home:

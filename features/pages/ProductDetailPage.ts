@@ -9,25 +9,27 @@
  *
  * @module ProductDetailPage
  */
-import { Locator, Page } from 'playwright';
-import { BasePage } from './BasePage';
+import { Locator, Page } from "playwright";
+import { BasePage } from "./BasePage";
 
 export class ProductDetailPage extends BasePage {
   // ── Fixed Locators (private) ─────────────────────────────────────
   /** @private Combined selector for the product title heading */
-  private readonly productTitle: string = 'h1.fhs_name_product_desktop';
+  private readonly productTitle: string = "h1.fhs_name_product_desktop";
 
   /** @private Combined selector for the current product price */
-  private readonly productPrice: string = '.fhs-price-box .price, .product-info .price';
+  private readonly productPrice: string =
+    ".fhs-price-box .price, .product-info .price";
 
   /** @private CSS selector for the quantity input field */
   private readonly quantityInput: string = 'input#qty, input[name="qty"]';
 
   /** @private Combined selector for the "Add to Cart" button */
-  private readonly addToCartButton: string = 'button.btn-cart-to-cart, button[id*="add-to-cart"]';
+  private readonly addToCartButton: string =
+    'button.btn-cart-to-cart, button[id*="add-to-cart"]';
 
   /** @private Combined selector for the "Buy Now" button */
-  private readonly buyNowButton: string = 'button.btn-buy-now, .btn-buy-now';
+  private readonly buyNowButton: string = "button.btn-buy-now, .btn-buy-now";
 
   /**
    * Creates a new ProductDetailPage instance.
@@ -47,7 +49,7 @@ export class ProductDetailPage extends BasePage {
    */
   public locatorProductAttributeByName(attributeName: string): Locator {
     return this.page.locator(
-      `//td[normalize-space(text())='${attributeName}']/following-sibling::td`
+      `//td[normalize-space(text())='${attributeName}']/following-sibling::td`,
     );
   }
 
@@ -77,22 +79,22 @@ export class ProductDetailPage extends BasePage {
       //   .innerText();
       const locator: Locator = this.page.locator(this.productTitle).first();
       //inner text always return string, textcontent return null if element is empty
-      const text: string = (await locator.innerText());
+      const text: string = await locator.innerText();
 
-      console.log('Product title: ' + text);
-      
+      console.log(`[ProductDetailPage] Extracted title: "${text}"`);
+
       //after pop, text from string become string | undefined so we still need ?? '' to handle the undefined case
       const lines = text
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 0);
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
 
       return lines[lines.length - 1];
     } catch (error) {
       throw new Error(
         `[ProductDetailPage] Failed to get product title. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -106,13 +108,13 @@ export class ProductDetailPage extends BasePage {
   public async getProductPrice(): Promise<string> {
     try {
       const locator: Locator = this.page.locator(this.productPrice).first();
-      await locator.waitFor({ state: 'visible', timeout: 10_000 });
-      return ((await locator.textContent()) ?? '').trim();
+      await locator.waitFor({ state: "visible", timeout: 10_000 });
+      return ((await locator.textContent()) ?? "").trim();
     } catch (error) {
       throw new Error(
         `[ProductDetailPage] Failed to get product price. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -127,13 +129,13 @@ export class ProductDetailPage extends BasePage {
   public async setQuantity(qty: number): Promise<void> {
     try {
       const locator: Locator = this.page.locator(this.quantityInput).first();
-      await locator.waitFor({ state: 'visible' });
+      await locator.waitFor({ state: "visible" });
       await locator.fill(String(qty));
     } catch (error) {
       throw new Error(
         `[ProductDetailPage] Failed to set quantity to ${qty}. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -148,18 +150,20 @@ export class ProductDetailPage extends BasePage {
   public async addToCart(): Promise<void> {
     try {
       const locator: Locator = this.page.locator(this.addToCartButton).first();
-      await locator.waitFor({ state: 'visible', timeout: 10_000 });
+      await locator.waitFor({ state: "visible", timeout: 10_000 });
 
       // Auto-dismiss any JS dialogs that may appear during add-to-cart
-      this.page.once('dialog', async (dialog) => { await dialog.dismiss(); });
+      this.page.once("dialog", async (dialog) => {
+        await dialog.dismiss();
+      });
 
       await locator.click();
       await this.page.waitForTimeout(2_000);
     } catch (error) {
       throw new Error(
         `[ProductDetailPage] Failed to add product to cart. ` +
-        `Current URL: ${this.page.url()}. ` +
-        `Error: ${(error as Error).message}`
+          `Current URL: ${this.page.url()}. ` +
+          `Error: ${(error as Error).message}`,
       );
     }
   }
@@ -170,7 +174,7 @@ export class ProductDetailPage extends BasePage {
    * @returns {boolean} True if the URL contains ".html" (product page pattern).
    */
   public isOnProductPage(): boolean {
-    return this.getCurrentUrl().includes('.html');
+    return this.getCurrentUrl().includes(".html");
   }
 
   /**

@@ -123,22 +123,95 @@ pipeline {
     // ── Post actions ────────────────────────────────────────────────────────
     post {
         always {
-            echo '🧹 Cleaning up...'
+            echo '🧹 Đang dọn dẹp và nén báo cáo...'
 
-            // Archive screenshots on failure
+            // 1. Lưu lại screenshot và video
             archiveArtifacts artifacts: 'screenshots/**/*.png', allowEmptyArchive: true
             archiveArtifacts artifacts: 'videos/**/*.webm', allowEmptyArchive: true
 
-            // Remove Docker image to save disk space (optional)
+            // 2. Nén thư mục allure-report thành file zip để đính kèm email
+            script {
+                try {
+                    zip zipFile: 'Allure-Report.zip', dir: 'allure-report', archive: false
+                } catch (Exception e) {
+                    echo '⚠️ Không tìm thấy plugin zip, chuyển sang dùng lệnh tar...'
+                    sh 'tar -czvf Allure-Report.tar.gz allure-report || true'
+                }
+            }
+
+            // 3. Xóa Docker image để dọn rác
             sh "docker rmi ${TEST_IMAGE} || true"
         }
 
         success {
-            echo "✅ Tests passed! ENV: ${params.ENV} | Browser: ${params.BROWSER}"
+            echo '✅ Tests passed! Đang gửi Email...'
+
+            emailext(
+                subject: "[Job #${env.BUILD_NUMBER}] ✅ THÀNH CÔNG: Kết quả Test E2E Fahasa",
+                body: """
+                Kính gửi Team,
+
+                Pipeline kiểm thử tự động (Fahasa E2E Tests) đã chạy THÀNH CÔNG. Dưới đây là thông tin chi tiết:
+
+                📊 TỔNG QUAN KẾT QUẢ
+                -------------------------------------------------
+                • Trạng thái: PASSED ✅
+                • Job Name: ${env.JOB_NAME}
+                • Build Number: #${env.BUILD_NUMBER}
+                • Môi trường: ${params.ENV}
+                • Trình duyệt: ${params.BROWSER}
+                • Tags filter: ${params.TAGS ?: 'Tất cả'}
+
+                🔗 LINK XEM BÁO CÁO ALLURE TRỰC TUYẾN
+                -------------------------------------------------
+                Vui lòng xem Allure Report trực tiếp trên Jenkins tại:
+                ${env.BUILD_URL}allure
+
+                📁 TÀI LIỆU ĐÍNH KÈM
+                -------------------------------------------------
+                Đã đính kèm file nén của Allure Report. Bạn có thể tải về, giải nén và mở file index.html để xem offline.
+
+                Trân trọng,
+                Jenkins Automation System
+                """.stripIndent(),
+                to: 'LuanLB1@fpt.com', // Jenkins dùng Gmail gửi đi, nhưng sẽ gửi ĐẾN địa chỉ FPT này
+                attachmentsPattern: 'Allure-Report.zip, Allure-Report.tar.gz'
+            )
         }
 
         failure {
-            echo '❌ Tests failed! Check Allure report for details.'
+            echo '❌ Tests failed! Đang gửi Email...'
+            emailext(
+                subject: "[Job #${env.BUILD_NUMBER}] ❌ THẤT BẠI: Kết quả Test E2E Fahasa",
+                body: """
+                Kính gửi Team,
+
+                Pipeline kiểm thử tự động (Fahasa E2E Tests) đã chạy THẤT BẠI.
+
+                📊 TỔNG QUAN KẾT QUẢ
+                -------------------------------------------------
+                • Trạng thái: FAILED ❌ (Có Test Case bị lỗi)
+                • Job Name: ${env.JOB_NAME}
+                • Build Number: #${env.BUILD_NUMBER}
+                • Môi trường: ${params.ENV}
+                • Trình duyệt: ${params.BROWSER}
+
+                🔗 LINK XEM CHI TIẾT LỖI VÀ VIDEO
+                -------------------------------------------------
+                Vui lòng check Allure Report (có chứa hình ảnh/video lúc lỗi) tại:
+                ${env.BUILD_URL}allure
+
+                📁 TÀI LIỆU ĐÍNH KÈM
+                -------------------------------------------------
+                Đã đính kèm file nén Allure Report.
+
+                Trân trọng,
+                Jenkins Automation System
+                """.stripIndent(),
+                to: 'LuanLB1@fpt.com',
+                attachmentsPattern: 'Allure-Report.zip, Allure-Report.tar.gz'
+            )
         }
     }
 }
+
