@@ -174,7 +174,9 @@ pipeline {
                 Trân trọng,
                 Jenkins Automation System
                 """.stripIndent(),
-                to: 'LuanLB1@fpt.com', // Jenkins dùng Gmail gửi đi, nhưng sẽ gửi ĐẾN địa chỉ FPT này
+                to: 'LuanLB1@fpt.com',
+                from: 'lambaluan2609@gmail.com',
+                replyTo: 'lambaluan2609@gmail.com',
                 attachmentsPattern: 'Allure-Report.zip, Allure-Report.tar.gz'
             )
         }
@@ -209,6 +211,8 @@ pipeline {
                 Jenkins Automation System
                 """.stripIndent(),
                 to: 'LuanLB1@fpt.com',
+                from: 'lambaluan2609@gmail.com',
+                replyTo: 'lambaluan2609@gmail.com',
                 attachmentsPattern: 'Allure-Report.zip, Allure-Report.tar.gz'
             )
         }
